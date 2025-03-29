@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pillar Shooter Arena - Fast 3D FPS Browser Game | Play Now!</title>
+    <meta
+      name="description"
+      content="Jump into Pillar Shooter Arena, a fast-paced 3D first-person shooter game playable directly in your browser! Aim, shoot targets, and beat the clock. Built with Three.js."
+    />
+    <meta
+      name="keywords"
+      content="browser game, fps game, 3d shooter, webgl game, three.js game, online shooting game, aim trainer, pillar shooter, free game"
+    />
+    <link rel="stylesheet" href="styles/main.css" />
+  </head>
+  <body>
+    <main>
+      <!-- UI Elements -->
+      <div id="game-ui">
+        <div id="bullets" class="ui-element">
+          <span class="ui-label">Ammo:</span><span class="ui-value">20</span>
+        </div>
+        <div id="targets" class="ui-element">
+          <span class="ui-label">Targets:</span
+          ><span class="ui-value">0/10</span>
+        </div>
+        <div id="timer" class="ui-element">
+          <span class="ui-label">Time:</span><span class="ui-value">5:00</span>
+        </div>
+      </div>
+
+      <!-- Crosshair -->
+      <div id="crosshair"></div>
+
+      <!-- Instructions / Pause / Game Over Screen -->
+      <div id="instructions-overlay">
+        <div id="instructions-box">
+          <h1>Pillar Shooter Arena</h1>
+          <p>
+            Destroy all 10
+            <span style="color: #ff4d4d">Red Cylinders</span> before time runs
+            out!
+          </p>
+          <p class="keybinds">
+            <strong>Controls:</strong> WASD: Move | Mouse: Aim | Left Click:
+            Shoot | Esc: Pause/End
+          </p>
+          <p class="click-to-play">Click anywhere to Start</p>
+          <p id="game-end-message"></p>
+          <!-- Content set via JS -->
+        </div>
+      </div>
+
+      <!-- Screen Flash Element -->
+      <div id="screen-flash"></div>
+
+      <!-- Canvas is appended by main.js -->
+    </main>
+
+    <!-- Scripts -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.134.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

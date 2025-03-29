@@ -1,0 +1,183 @@
+:root {
+  --ui-bg-color: rgba(20, 30, 40, 0.75);
+  --ui-text-color: #e0f2ff;
+  --ui-accent-color: #ffc107;
+  --hit-flash-color: rgba(255, 80, 80, 0.2);
+  --ui-border-radius: 8px;
+  --ui-padding: 15px;
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #050a10;
+  color: var(--ui-text-color);
+  font-family: var(--font-family);
+}
+canvas {
+  display: block;
+}
+main {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+}
+
+/* Game UI (Top Left) */
+#game-ui {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: var(--ui-bg-color);
+  padding: var(--ui-padding);
+  border-radius: var(--ui-border-radius);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+  font-size: 16px;
+  min-width: 150px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.ui-element {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+.ui-element:last-child {
+  margin-bottom: 0;
+}
+.ui-label {
+  display: inline-block;
+  width: 70px;
+  font-weight: 600;
+  color: #a0c4ff;
+}
+.ui-value {
+  font-weight: bold;
+  color: var(--ui-text-color);
+}
+#timer .ui-value {
+  color: var(--ui-accent-color);
+  font-size: 1.1em;
+}
+
+/* Crosshair */
+#crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 16px;
+  background: var(--ui-accent-color);
+  opacity: 0.8;
+  transform: translate(-50%, -50%);
+  display: none;
+  z-index: 10;
+  border-radius: 1px;
+}
+#crosshair::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 4px;
+  background: var(--ui-accent-color);
+  opacity: 0.8;
+  transform: translate(-50%, -50%);
+  border-radius: 1px;
+}
+
+/* Instructions/Pause/End Overlay */
+#instructions-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+  cursor: pointer;
+}
+#instructions-box {
+  font-size: 1.5em; /* Base font size for the box */
+  text-align: center;
+  background: var(--ui-bg-color);
+  padding: 30px 40px;
+  border-radius: var(--ui-border-radius);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  max-width: 500px;
+  backdrop-filter: blur(6px); /* Stronger blur for overlay */
+  -webkit-backdrop-filter: blur(6px);
+}
+#instructions-box h1 {
+  /* Changed from h2 */
+  margin-top: 0;
+  color: var(--ui-accent-color);
+  font-size: 1.5em; /* Relative to #instructions-box font-size */
+  margin-bottom: 20px;
+}
+#instructions-box p {
+  margin-bottom: 10px;
+  line-height: 1.6;
+  font-size: 0.9em; /* Relative to #instructions-box font-size */
+}
+#instructions-box .keybinds {
+  font-size: 0.8em; /* Relative */
+  color: #a0c4ff;
+  margin-top: 25px;
+}
+#instructions-box .click-to-play {
+  margin-top: 30px;
+  font-weight: bold;
+  font-size: 1.1em; /* Relative */
+  color: #fff;
+  animation: pulse 1.5s infinite ease-in-out; /* Add subtle pulse */
+}
+#game-end-message {
+  display: none; /* Initially hidden */
+  font-size: 1.2em; /* Relative */
+  margin-top: 20px;
+  font-weight: bold;
+  color: var(--ui-text-color);
+}
+
+/* Screen Flash on Hit */
+#screen-flash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--hit-flash-color);
+  opacity: 0;
+  transition: opacity 0.05s ease-out;
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+}
+#screen-flash.active {
+  opacity: 1;
+  display: block;
+}
+
+/* Simple pulsing animation for the 'Click to Play' text */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
