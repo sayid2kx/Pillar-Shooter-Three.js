@@ -16,7 +16,7 @@
   </head>
   <body>
     <main>
-      <!-- UI Elements -->
+      <!-- Game UI (Ammo, Targets, Time) - Initially Hidden -->
       <div id="game-ui">
         <div id="bullets" class="ui-element">
           <span class="ui-label">Ammo:</span><span class="ui-value">20</span>
@@ -30,25 +30,60 @@
         </div>
       </div>
 
+      <!-- Player Info (Top Right) - Initially Hidden -->
+      <div id="player-info">
+        <div class="player-name-container">
+          <span class="ui-label">Player:</span>
+          <span id="player-name-display" class="ui-value">Player</span>
+        </div>
+        <!-- End Game Button REMOVED -->
+      </div>
+
       <!-- Crosshair -->
       <div id="crosshair"></div>
 
       <!-- Instructions / Pause / Game Over Screen -->
       <div id="instructions-overlay">
         <div id="instructions-box">
-          <h1>Pillar Shooter Arena</h1>
-          <p>
-            Destroy all 10
-            <span style="color: #ff4d4d">Red Cylinders</span> before time runs
-            out!
-          </p>
-          <p class="keybinds">
-            <strong>Controls:</strong> WASD: Move | Mouse: Aim | Left Click:
-            Shoot | Esc: Pause/End
-          </p>
-          <p class="click-to-play">Click anywhere to Start</p>
-          <p id="game-end-message"></p>
-          <!-- Content set via JS -->
+          <!-- Title (Content changes via JS) -->
+          <h1 id="overlay-title">Welcome!</h1>
+
+          <!-- State 1: Welcome Screen Elements -->
+          <div id="welcome-content" class="overlay-content">
+            <p>Enter your name to begin:</p>
+            <div class="player-name-section">
+              <input
+                type="text"
+                id="player-name-input"
+                placeholder="Player"
+                maxlength="16"
+              />
+              <button id="submit-name-button">Continue</button>
+            </div>
+            <p class="welcome-note">Built with Three.js</p>
+          </div>
+
+          <!-- State 2 & 4: Instructions/Pause Screen Elements -->
+          <div id="instructions-content" class="overlay-content">
+            <p class="game-description">
+              Destroy all 10
+              <span style="color: #ff4d4d">Red Cylinders</span> before time runs
+              out!
+            </p>
+            <!-- UPDATED Keybinds Text - This is the second screen message -->
+            <p class="keybinds">
+              <strong>Controls:</strong> WASD: Move | Mouse: Aim | Left Click:
+              Shoot | Esc: Pause/Resume | Ctrl+Shift+Q: End Game
+            </p>
+            <p class="click-to-play">Click anywhere to Start</p>
+            <!-- This text changes for pause state -->
+          </div>
+
+          <!-- State 5: Game Over Elements -->
+          <div id="game-over-content" class="overlay-content">
+            <p id="game-end-message"></p>
+            <p class="refresh-note">Refresh the page (F5) to play again.</p>
+          </div>
         </div>
       </div>
 

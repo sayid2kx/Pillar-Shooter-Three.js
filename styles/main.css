@@ -4,7 +4,8 @@
   --ui-accent-color: #ffc107;
   --hit-flash-color: rgba(255, 80, 80, 0.2);
   --ui-border-radius: 8px;
-  --ui-padding: 15px;
+  --ui-padding: 15px; /* General padding */
+  --ui-padding-compact: 10px 15px; /* Compact padding for player info */
   --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 body {
@@ -23,7 +24,7 @@ main {
   height: 100vh;
 }
 
-/* Game UI (Top Left) */
+/* Game UI (Top Left) - HIDDEN INITIALLY */
 #game-ui {
   position: absolute;
   top: 20px;
@@ -38,6 +39,7 @@ main {
   min-width: 150px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  display: none; /* Hide by default */
 }
 .ui-element {
   margin-bottom: 8px;
@@ -60,6 +62,41 @@ main {
 #timer .ui-value {
   color: var(--ui-accent-color);
   font-size: 1.1em;
+}
+
+/* Player Info (Top Right) - HIDDEN INITIALLY */
+#player-info {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--ui-bg-color);
+  padding: var(--ui-padding-compact); /* Use compact padding */
+  border-radius: var(--ui-border-radius);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+  font-size: 16px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: none; /* Hide by default */
+  align-items: center; /* Vertically align items */
+}
+.player-name-container {
+  /* Container for label + name */
+  display: flex;
+  align-items: center;
+}
+#player-info .ui-label {
+  width: auto; /* Adjust width */
+  margin-right: 8px;
+}
+#player-info .ui-value {
+  max-width: 150px; /* Can be wider now */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Crosshair */
@@ -101,50 +138,131 @@ main {
   justify-content: center;
   align-items: center;
   z-index: 20;
+  cursor: default; /* Default cursor */
+}
+/* Make overlay clickable ONLY when instructions/pause are shown */
+#instructions-overlay.clickable {
   cursor: pointer;
 }
+
 #instructions-box {
-  font-size: 1.5em; /* Base font size for the box */
+  font-size: 1.5em;
   text-align: center;
   background: var(--ui-bg-color);
   padding: 30px 40px;
   border-radius: var(--ui-border-radius);
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  max-width: 500px;
-  backdrop-filter: blur(6px); /* Stronger blur for overlay */
+  max-width: 550px; /* Slightly wider for new controls text */
+  backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
-#instructions-box h1 {
-  /* Changed from h2 */
+#instructions-box h1#overlay-title {
+  /* Target the title */
   margin-top: 0;
   color: var(--ui-accent-color);
-  font-size: 1.5em; /* Relative to #instructions-box font-size */
-  margin-bottom: 20px;
+  font-size: 1.5em;
+  margin-bottom: 25px; /* More space below title */
+}
+
+/* Content Sections within Overlay */
+.overlay-content {
+  display: none; /* Hide all content sections by default */
+}
+.overlay-content.active {
+  display: block; /* Show the active section */
 }
 #instructions-box p {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   line-height: 1.6;
-  font-size: 0.9em; /* Relative to #instructions-box font-size */
+  font-size: 0.9em;
 }
-#instructions-box .keybinds {
-  font-size: 0.8em; /* Relative */
-  color: #a0c4ff;
+
+/* Welcome Screen Specifics */
+#welcome-content p {
+  /* Style the 'Enter your name' text */
+  font-size: 0.9em;
+  margin-bottom: 15px;
+  color: #c0d0e0;
+}
+.player-name-section {
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+#player-name-input {
+  display: inline-block;
+  width: 80%;
+  max-width: 280px;
+  padding: 10px 12px;
+  font-size: 0.8em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: var(--ui-text-color);
+  text-align: center;
+}
+#player-name-input:focus {
+  outline: none;
+  border-color: var(--ui-accent-color);
+  box-shadow: 0 0 5px rgba(255, 193, 7, 0.5);
+}
+#submit-name-button {
+  padding: 10px 25px;
+  font-size: 0.85em;
+  font-weight: bold;
+  color: #1a2a3a;
+  background-color: var(--ui-accent-color);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+#submit-name-button:hover {
+  background-color: #ffda63;
+  transform: scale(1.03);
+}
+#submit-name-button:active {
+  transform: scale(0.98);
+}
+.welcome-note {
+  font-size: 0.7em !important; /* Smaller note */
+  color: #708090;
   margin-top: 25px;
 }
-#instructions-box .click-to-play {
-  margin-top: 30px;
-  font-weight: bold;
-  font-size: 1.1em; /* Relative */
-  color: #fff;
-  animation: pulse 1.5s infinite ease-in-out; /* Add subtle pulse */
+
+/* Instructions/Pause Screen Specifics */
+#instructions-content .game-description {
+  /* Target specifically */
+  font-size: 0.9em;
+  margin-bottom: 20px;
 }
-#game-end-message {
-  display: none; /* Initially hidden */
-  font-size: 1.2em; /* Relative */
+#instructions-content .keybinds {
+  font-size: 0.8em;
+  color: #a0c4ff;
+  margin-top: 25px;
+  margin-bottom: 30px; /* Space before click-to-play */
+}
+#instructions-content .click-to-play {
+  font-weight: bold;
+  font-size: 1.1em;
+  color: #fff;
+  animation: pulse 1.5s infinite ease-in-out;
   margin-top: 20px;
+}
+
+/* Game Over Screen Specifics */
+#game-over-content #game-end-message {
+  font-size: 1.1em; /* Slightly smaller than h1 */
   font-weight: bold;
   color: var(--ui-text-color);
+  margin-bottom: 20px;
+}
+#game-over-content .refresh-note {
+  font-size: 0.8em;
+  color: #a0c4ff;
 }
 
 /* Screen Flash on Hit */
@@ -166,7 +284,7 @@ main {
   display: block;
 }
 
-/* Simple pulsing animation for the 'Click to Play' text */
+/* Simple pulsing animation */
 @keyframes pulse {
   0% {
     transform: scale(1);

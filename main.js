@@ -5,43 +5,46 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 // --- Basic Setup ---
 let scene, camera, renderer, controls
 let clock = new THREE.Clock()
-let gameActive = false // Is the game simulation running (not paused)?
+let gameActive = false
 let timerInterval
-let isGameOver = false // Has the game finished (win/lose)?
-let isPaused = false // Explicit pause state (e.g., via Esc)
+let isGameOver = false
+let isPaused = false
+let currentOverlayState = 'welcome'
 
 // --- Game Objects & State ---
-const gameObjects = [] // Array to hold all pillars/shapes for collision etc.
-const redPillars = [] // Keep track of red pillars specifically
-const pillarLabels = {} // Map pillar UUID to its label sprite {label: Sprite, pillar: Mesh}
+const gameObjects = []
+const redPillars = []
+const pillarLabels = {}
 let bullets = 20
 let destroyedTargets = 0
 const totalTargets = 10
-let timeLeft = 300 // 5 minutes in seconds
+let timeLeft = 300
+let playerName = 'Player'
+let manualEnd = false // Flag for manual game end
 
 // --- Constants ---
 const PLAYER_HEIGHT = 1.6
 const PLAYER_SPEED = 5.0
-const PLAYER_RADIUS = 0.3 // Player's approximate collision radius
-const PILLAR_COUNT = 1000 // Increased pillar count
-const PILLAR_AREA_SIZE = 80 // Increased area for more pillars
-const LABEL_VISIBILITY_DISTANCE = 35 // Max distance to show labels
-const LABEL_UPDATE_INTERVAL = 0.25 // Seconds - Check label visibility less frequently
+const PLAYER_RADIUS = 0.3
+const PILLAR_COUNT = 1000
+const PILLAR_AREA_SIZE = 80
+const LABEL_VISIBILITY_DISTANCE = 35
+const LABEL_UPDATE_INTERVAL = 0.25
 let timeSinceLastLabelUpdate = 0
-const MAX_BASE_SIZE_TARGET = 1.8 // Max height/diameter for targets
-const MAX_BASE_SIZE_OTHER = 2.2 // Max height/diameter/size for others
-const MIN_OBJ_SCALE = 0.6 // Minimum scale factor relative to max base size
-const MAX_OBJ_SCALE = 1.0 // Maximum scale factor
-const MIN_SPACING = PLAYER_RADIUS * 2 + 0.5 // Min distance between object centers (player diameter + buffer)
-const MAX_PLACEMENT_ATTEMPTS = 10 // Attempts to find a spaced-out position
+const MAX_BASE_SIZE_TARGET = 1.8
+const MAX_BASE_SIZE_OTHER = 2.2
+const MIN_OBJ_SCALE = 0.6
+const MAX_OBJ_SCALE = 1.0
+const MIN_SPACING = PLAYER_RADIUS * 2 + 0.5
+const MAX_PLACEMENT_ATTEMPTS = 10
 
 // --- Gun & Effects ---
-let gunGroup // Group holding all gun parts
+let gunGroup
 let muzzleFlash
-let originalGunPosition = new THREE.Vector3(0.2, -0.15, -0.5) // Store default position
+let originalGunPosition = new THREE.Vector3(0.2, -0.15, -0.5)
 let isRecoiling = false
-const RECOIL_AMOUNT = 0.03 // How far back the gun kicks
-const RECOIL_RECOVERY_SPEED = 10.0 // How fast it returns
+const RECOIL_AMOUNT = 0.03
+const RECOIL_RECOVERY_SPEED = 10.0
 
 // Player movement state
 const moveState = { forward: 0, right: 0 }
@@ -54,24 +57,37 @@ const particles = []
 
 // Raycasters
 const shootRaycaster = new THREE.Raycaster()
-const labelRaycaster = new THREE.Raycaster() // Separate raycaster for labels
+const labelRaycaster = new THREE.Raycaster()
 
 // --- UI Elements ---
+const gameUI = document.getElementById('game-ui')
 const bulletsUI = document.querySelector('#bullets .ui-value')
 const targetsUI = document.querySelector('#targets .ui-value')
 const timerUI = document.querySelector('#timer .ui-value')
 const crosshair = document.getElementById('crosshair')
 const instructionsOverlay = document.getElementById('instructions-overlay')
 const instructionsBox = document.getElementById('instructions-box')
+const screenFlashElement = document.getElementById('screen-flash')
+const playerInfoDisplay = document.getElementById('player-info')
+const playerNameDisplay = document.getElementById('player-name-display')
+// End Game Button constant REMOVED
+
+// Overlay Content Elements
+const overlayTitle = document.getElementById('overlay-title')
+const welcomeContent = document.getElementById('welcome-content')
+const instructionsContent = document.getElementById('instructions-content')
+const gameOverContent = document.getElementById('game-over-content')
+const playerNameInput = document.getElementById('player-name-input')
+const submitNameButton = document.getElementById('submit-name-button')
+const clickToPlayText = instructionsContent.querySelector('.click-to-play')
 const gameEndMessage = document.getElementById('game-end-message')
-const screenFlashElement = document.getElementById('screen-flash') // Get flash element
 
 // --- Initialization ---
 function init() {
   // Scene
   scene = new THREE.Scene()
   scene.background = new THREE.Color(0x050a10)
-  scene.fog = new THREE.Fog(scene.background, 30, PILLAR_AREA_SIZE * 0.8) // Add fog for atmosphere/depth
+  scene.fog = new THREE.Fog(scene.background, 30, PILLAR_AREA_SIZE * 0.8)
 
   // Camera
   camera = new THREE.PerspectiveCamera(
@@ -79,30 +95,24 @@ function init() {
     window.innerWidth / window.innerHeight,
     0.1,
     150,
-  ) // Increased far plane slightly
+  )
   camera.position.y = PLAYER_HEIGHT
 
   // Renderer
   renderer = new THREE.WebGLRenderer({ antialias: false })
   renderer.setSize(window.innerWidth, window.innerHeight)
-  renderer.setPixelRatio(window.devicePixelRatio) // Use device pixel ratio
-
-  // *** CHANGE: Append canvas to <main> instead of <body> ***
+  renderer.setPixelRatio(window.devicePixelRatio)
   const mainElement = document.querySelector('main')
   if (mainElement) {
-    mainElement.appendChild(renderer.domElement) // Append canvas inside <main>
+    mainElement.appendChild(renderer.domElement)
   } else {
-    console.error(
-      'Could not find <main> element to append canvas! Appending to body as fallback.',
-    )
-    document.body.appendChild(renderer.domElement) // Fallback
-  }
-  // *** END CHANGE ***
+    document.body.appendChild(renderer.domElement)
+  } // Fallback
 
   // Lighting
-  const ambientLight = new THREE.AmbientLight(0x607080) // Cooler ambient
+  const ambientLight = new THREE.AmbientLight(0x607080)
   scene.add(ambientLight)
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8) // Add hemisphere light for subtle gradients
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8)
   hemiLight.position.set(0, 50, 0)
   scene.add(hemiLight)
 
@@ -110,8 +120,8 @@ function init() {
   const groundGeometry = new THREE.PlaneGeometry(
     PILLAR_AREA_SIZE * 1.5,
     PILLAR_AREA_SIZE * 1.5,
-  ) // Larger ground
-  const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x1a2a1a }) // Use Lambert for subtle light interaction
+  )
+  const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x1a2a1a })
   const ground = new THREE.Mesh(groundGeometry, groundMaterial)
   ground.rotation.x = -Math.PI / 2
   scene.add(ground)
@@ -120,7 +130,7 @@ function init() {
   controls = new PointerLockControls(camera, renderer.domElement)
   scene.add(controls.getObject()) // Add camera group to scene
 
-  // Create Improved Gun Model & Effects
+  // Create Gun
   createGun()
 
   // Generate Environment
@@ -132,14 +142,75 @@ function init() {
   // Event Listeners
   setupEventListeners()
 
-  // Initial UI Update
+  // Initial UI Update (only base needed for timer format maybe)
   updateUI()
+
+  // Show the initial welcome screen
+  setOverlayState('welcome')
 
   // Start Animation Loop
   animate()
 }
 
-// --- Improved Gun Creation (With Brighter Color) ---
+// --- UI State Management ---
+function setOverlayState(newState) {
+  currentOverlayState = newState
+  instructionsOverlay.classList.remove('clickable') // Remove clickable by default
+
+  // Hide all overlay content sections first
+  welcomeContent.classList.remove('active')
+  instructionsContent.classList.remove('active')
+  gameOverContent.classList.remove('active')
+
+  // Hide gameplay UI elements by default when overlay is shown
+  gameUI.style.display = 'none'
+  playerInfoDisplay.style.display = 'none'
+  // End Game button showing logic REMOVED
+
+  switch (newState) {
+    case 'welcome':
+      instructionsOverlay.style.display = 'flex'
+      overlayTitle.textContent = 'Pillar Shooter Arena'
+      welcomeContent.classList.add('active')
+      break
+
+    case 'instructions':
+      instructionsOverlay.style.display = 'flex'
+      instructionsOverlay.classList.add('clickable') // Make clickable now
+      overlayTitle.textContent = 'Instructions'
+      instructionsContent.classList.add('active')
+      clickToPlayText.textContent = 'Click anywhere to Start' // Ensure correct text
+      break
+
+    case 'paused':
+      instructionsOverlay.style.display = 'flex'
+      instructionsOverlay.classList.add('clickable') // Make clickable to resume
+      overlayTitle.textContent = 'Game Paused'
+      instructionsContent.classList.add('active') // Reuse instructions content structure
+      clickToPlayText.textContent = 'Click anywhere to Resume' // Change text
+      break
+
+    case 'gameover':
+      instructionsOverlay.style.display = 'flex'
+      // Title and message set within endGame()
+      gameOverContent.classList.add('active')
+      break
+
+    case 'hidden': // Game is active
+      instructionsOverlay.style.display = 'none'
+      // Show gameplay UI elements
+      gameUI.style.display = 'block'
+      playerInfoDisplay.style.display = 'flex' // Use flex for layout
+      // End Game button showing logic REMOVED
+      break
+
+    default:
+      console.error('Unknown overlay state:', newState)
+      instructionsOverlay.style.display = 'none' // Hide if unknown
+  }
+}
+
+// --- Gun Creation ---
 function createGun() {
   gunGroup = new THREE.Group()
   const gunMaterial = new THREE.MeshBasicMaterial({ color: 0xc0c0c0 }) // Light Silver/Grey
@@ -184,7 +255,7 @@ function createGun() {
   camera.add(gunGroup)
 }
 
-// Optional: Texture for Muzzle Flash for a better shape
+// --- Muzzle Flash Texture ---
 function createMuzzleFlashTexture() {
   const canvas = document.createElement('canvas')
   canvas.width = 64
@@ -215,11 +286,11 @@ function createMuzzleFlashTexture() {
   return texture
 }
 
-// --- Environment Generation --- (Includes size, spacing, crash fix)
+// --- Environment Generation ---
 function generateEnvironment() {
   const nonTargetShapes = ['cube', 'sphere', 'pyramid', 'tree']
   const colors = []
-  for (let i = 0; i < totalTargets; i++) colors.push(0xff0000)
+  for (let i = 0; i < totalTargets; i++) colors.push(0xff0000) // Red for targets
   for (let i = 0; i < PILLAR_COUNT - totalTargets; i++) {
     colors.push(
       new THREE.Color()
@@ -227,17 +298,20 @@ function generateEnvironment() {
         .getHex(),
     )
   }
-  colors.sort(() => Math.random() - 0.5)
+  colors.sort(() => Math.random() - 0.5) // Shuffle colors
   let redPillarCount = 0
+
   for (let i = 0; i < PILLAR_COUNT; i++) {
     let geometry, material, mesh
     let position = new THREE.Vector3()
     let scale = MIN_OBJ_SCALE + Math.random() * (MAX_OBJ_SCALE - MIN_OBJ_SCALE)
-    let objRadius = 0
-    let objHeight = 0
+    let objRadius = 0,
+      objHeight = 0
     let shapeType = ''
     const randomColor = colors[i]
     const isTarget = randomColor === 0xff0000
+
+    // Create Geometry & Material based on type (target or other)
     if (isTarget) {
       shapeType = 'cylinder'
       const maxRadius = (MAX_BASE_SIZE_TARGET / 2) * scale
@@ -254,6 +328,7 @@ function generateEnvironment() {
         nonTargetShapes[Math.floor(Math.random() * nonTargetShapes.length)]
       material = new THREE.MeshLambertMaterial({ color: randomColor })
       const baseSize = MAX_BASE_SIZE_OTHER * scale
+
       switch (shapeType) {
         case 'cube':
           const size = Math.max(0.8, baseSize * (0.8 + Math.random() * 0.4))
@@ -327,6 +402,8 @@ function generateEnvironment() {
           break
       }
     }
+
+    // Find a valid position
     let validPosition = false
     for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt++) {
       position.set(
@@ -336,9 +413,8 @@ function generateEnvironment() {
       )
       let tooClose = false
       for (const existingObj of gameObjects) {
-        if (!existingObj || !existingObj.position || !existingObj.userData) {
+        if (!existingObj || !existingObj.position || !existingObj.userData)
           continue
-        }
         const distSq = position.distanceToSquared(existingObj.position)
         const requiredDist =
           (existingObj.userData.radius || 0.5) +
@@ -354,9 +430,10 @@ function generateEnvironment() {
         break
       }
     }
-    if (!validPosition) {
-      continue
-    }
+
+    if (!validPosition) continue
+
+    // Set final Y position
     let finalY
     if (
       mesh instanceof THREE.Group &&
@@ -371,6 +448,8 @@ function generateEnvironment() {
       finalY = objHeight / 2
     }
     position.y = finalY
+
+    // Apply position and store data
     mesh.position.copy(position)
     mesh.userData.radius = objRadius
     mesh.userData.height = objHeight
@@ -378,6 +457,8 @@ function generateEnvironment() {
     mesh.receiveShadow = false
     scene.add(mesh)
     gameObjects.push(mesh)
+
+    // Handle Targets specifically
     if (isTarget) {
       mesh.isTarget = true
       redPillarCount++
@@ -438,15 +519,18 @@ function createPillarLabel(text) {
   sprite.renderOrder = 1
   return sprite
 }
+
 function updateLabelVisibility(deltaTime) {
   timeSinceLastLabelUpdate += deltaTime
   if (timeSinceLastLabelUpdate < LABEL_UPDATE_INTERVAL && !isGameOver) return
   timeSinceLastLabelUpdate = 0
+
   const cameraPosition = camera.position
   const cameraDirection = camera.getWorldDirection(new THREE.Vector3())
   const sceneMeshes = gameObjects.filter(
     (obj) => !(obj instanceof THREE.Sprite) && obj !== particleSystem,
   )
+
   for (const uuid in pillarLabels) {
     const { label, pillar } = pillarLabels[uuid]
     if (!pillar || !pillar.parent) {
@@ -454,13 +538,7 @@ function updateLabelVisibility(deltaTime) {
       delete pillarLabels[uuid]
       continue
     }
-    const pillarHeight = pillar.userData.height || 1.0
-    const pillarTopY = pillar.position.y + pillarHeight / 2
-    const pillarTopPosition = new THREE.Vector3(
-      pillar.position.x,
-      pillarTopY,
-      pillar.position.z,
-    )
+
     const distanceToPillar = cameraPosition.distanceTo(pillar.position)
     if (distanceToPillar > LABEL_VISIBILITY_DISTANCE) {
       label.visible = false
@@ -474,12 +552,21 @@ function updateLabelVisibility(deltaTime) {
       label.visible = false
       continue
     }
+
+    const pillarHeight = pillar.userData.height || 1.0
+    const pillarTopY = pillar.position.y + pillarHeight / 2
+    const pillarTopPosition = new THREE.Vector3(
+      pillar.position.x,
+      pillarTopY,
+      pillar.position.z,
+    )
     labelRaycaster.set(
       cameraPosition,
-      pillarTopPosition.sub(cameraPosition).normalize(),
+      pillarTopPosition.clone().sub(cameraPosition).normalize(),
     )
     labelRaycaster.far = distanceToPillar + 1.0
     const intersects = labelRaycaster.intersectObjects(sceneMeshes, true)
+
     let isVisible = false
     if (intersects.length > 0) {
       const firstHit = intersects[0]
@@ -489,14 +576,7 @@ function updateLabelVisibility(deltaTime) {
           pillar.children.includes(firstHit.object))
       ) {
         isVisible = true
-      } else if (
-        Math.abs(firstHit.distance - distanceToPillar) <
-        (pillar.userData.radius || 0.5) * 1.5
-      ) {
-        isVisible = true
       }
-    } else {
-      if (distanceToPillar < 5) isVisible = true
     }
     label.visible = isVisible
   }
@@ -534,6 +614,7 @@ function initParticleSystem() {
   particleSystem = new THREE.Points(particleGeometry, particleMaterial)
   scene.add(particleSystem)
 }
+
 function createParticleTexture() {
   const canvas = document.createElement('canvas')
   canvas.width = 64
@@ -550,6 +631,7 @@ function createParticleTexture() {
   texture.needsUpdate = true
   return texture
 }
+
 function triggerParticleEffect(position) {
   let particlesSpawned = 0
   const positions = particleGeometry.attributes.position.array
@@ -582,6 +664,7 @@ function triggerParticleEffect(position) {
   if (needsPosUpdate) particleGeometry.attributes.position.needsUpdate = true
   if (needsAlphaUpdate) particleGeometry.attributes.alpha.needsUpdate = true
 }
+
 function updateParticles(deltaTime) {
   const gravity = new THREE.Vector3(0, -9.8, 0)
   let needsPosUpdate = false,
@@ -620,38 +703,43 @@ function setupEventListeners() {
   window.addEventListener('resize', onWindowResize)
   document.addEventListener('keydown', onKeyDown)
   document.addEventListener('keyup', onKeyUp)
+
+  submitNameButton.addEventListener('click', () => {
+    const nameValue = playerNameInput.value.trim()
+    playerName = nameValue ? nameValue : 'Player'
+    setOverlayState('instructions')
+  })
+
+  instructionsOverlay.addEventListener('click', (event) => {
+    if (instructionsBox.contains(event.target)) return
+    if (
+      currentOverlayState === 'instructions' ||
+      currentOverlayState === 'paused'
+    ) {
+      if (!isGameOver) controls.lock()
+    }
+  })
+
   controls.addEventListener('lock', () => {
     if (isGameOver) return
-    instructionsOverlay.style.display = 'none'
+    setOverlayState('hidden')
     crosshair.style.display = 'block'
+    playerNameDisplay.textContent = playerName
     isPaused = false
-    if (!gameActive && !timerInterval) {
-      startGame()
-    }
+    if (!gameActive) startGame()
     gameActive = true
   })
+
   controls.addEventListener('unlock', () => {
     if (isGameOver) return
     gameActive = false
     isPaused = true
     crosshair.style.display = 'none'
-    instructionsOverlay.style.display = 'flex'
-    instructionsBox.querySelector('h1').textContent = 'Game Paused'
-    instructionsBox.querySelector(
-      'p:not(.keybinds):not(.click-to-play)',
-    ).textContent = 'Destroy all 10 Red Cylinders before time runs out!'
-    instructionsBox.querySelector('.click-to-play').textContent =
-      'Click anywhere to Resume'
-    instructionsBox.querySelector('.click-to-play').style.display = 'block'
-    gameEndMessage.style.display = 'none'
+    setOverlayState('paused')
     moveState.forward = 0
     moveState.right = 0
   })
-  instructionsOverlay.addEventListener('click', () => {
-    if (!isGameOver) {
-      controls.lock()
-    }
-  })
+
   document.addEventListener('pointerdown', (event) => {
     if (
       controls.isLocked &&
@@ -663,20 +751,23 @@ function setupEventListeners() {
       shoot()
     }
   })
+
+  // End Game Button Listener REMOVED
 }
 
 // --- Game Logic ---
 function startGame() {
-  console.log('Starting game')
+  console.log(`Starting game for ${playerName}`)
   isGameOver = false
   isPaused = false
   gameActive = true
+  manualEnd = false // Reset manual end flag
   timeLeft = 300
   bullets = 20
   destroyedTargets = 0
   updateUI()
+
   clearInterval(timerInterval)
-  timerInterval = null
   timerInterval = setInterval(() => {
     if (!gameActive || isGameOver || isPaused) return
     timeLeft--
@@ -684,17 +775,16 @@ function startGame() {
     if (timeLeft <= 0) {
       timeLeft = 0
       updateUI()
-      endGame(false)
+      endGame(false) // Time ran out
     }
   }, 1000)
 }
 
+// --- Shooting Logic ---
 function shoot() {
   if (bullets <= 0) return
   bullets--
   updateUI()
-
-  // Trigger Gun Effects
   if (muzzleFlash) {
     muzzleFlash.visible = true
     muzzleFlash.rotation.z = Math.random() * Math.PI * 2
@@ -703,13 +793,9 @@ function shoot() {
     }, 60)
   }
   isRecoiling = true
-  if (gunGroup) {
-    gunGroup.position.z += RECOIL_AMOUNT
-  }
-
+  if (gunGroup) gunGroup.position.z += RECOIL_AMOUNT
   shootRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera)
   const intersects = shootRaycaster.intersectObjects(redPillars, false)
-
   if (intersects.length > 0) {
     const hitObject = intersects[0].object
     if (hitObject.isTarget && hitObject.visible) {
@@ -727,17 +813,11 @@ function shoot() {
       triggerParticleEffect(intersects[0].point)
       destroyedTargets++
       updateUI()
-      triggerScreenFlash() // Target Hit Feedback
-      // console.log("SOUND: Target Hit!");
-      if (destroyedTargets === totalTargets) {
-        endGame(true)
-      }
+      triggerScreenFlash()
+      if (destroyedTargets === totalTargets) endGame(true)
     }
-  } else {
-    // Optional miss effect
   }
 }
-
 function triggerScreenFlash() {
   if (!screenFlashElement) return
   screenFlashElement.classList.add('active')
@@ -760,14 +840,13 @@ function updatePlayerMovement(deltaTime) {
   const currentPosition = cameraObject.position
   const collisionCheckRadius = 5
   for (const obj of gameObjects) {
-    if (!obj.visible || !obj.userData.radius) continue
+    if (!obj.visible || !obj.userData.radius || !obj.parent) continue
     const objPosition = obj.position
     const distToObjXZSq =
       (currentPosition.x - objPosition.x) ** 2 +
       (currentPosition.z - objPosition.z) ** 2
-    if (distToObjXZSq > (collisionCheckRadius + obj.userData.radius) ** 2) {
+    if (distToObjXZSq > (collisionCheckRadius + obj.userData.radius) ** 2)
       continue
-    }
     const collisionRadius = (obj.userData.radius || 0.5) + PLAYER_RADIUS
     const intendedDistXZSq =
       (intendedPosition.x - objPosition.x) ** 2 +
@@ -797,47 +876,70 @@ function endGame(isWin) {
   isPaused = false
   clearInterval(timerInterval)
   timerInterval = null
+
   if (controls.isLocked) {
     controls.unlock()
   }
-  instructionsOverlay.style.display = 'flex'
   crosshair.style.display = 'none'
+
   let title = '',
     message = ''
   if (isWin) {
     title = 'Victory!'
-    message = `You destroyed all ${totalTargets} targets!`
+    message = `You destroyed all ${totalTargets} targets, ${playerName}!`
+  } else if (manualEnd) {
+    title = 'Game Ended'
+    message = `You ended the game early, ${playerName}.`
+    manualEnd = false // Reset flag for next potential game
+  } else if (timeLeft <= 0) {
+    title = "Time's Up!"
+    message = `You ran out of time, ${playerName}. Better luck next round!`
   } else {
-    if (timeLeft <= 0) {
-      title = "Time's Up!"
-      message = 'You ran out of time. Better luck next round!'
-    } else {
-      title = 'Game Over'
-      message = 'You ended the game.'
-    }
+    title = 'Game Over' // Should be rare now
+    message = `Game session finished.`
   }
-  instructionsBox.querySelector('h1').textContent = title
-  /* Update h1 */ instructionsBox.querySelector(
-    'p:not(.keybinds):not(.click-to-play)',
-  ).textContent = message
-  gameEndMessage.textContent = 'Refresh the page to play again.'
-  gameEndMessage.style.display = 'block'
-  instructionsBox.querySelector('.click-to-play').style.display = 'none'
+
+  overlayTitle.textContent = title
+  gameEndMessage.textContent = message
+  setOverlayState('gameover')
 }
 
 // --- Input Handling ---
 function onKeyDown(event) {
-  if (event.key === 'Escape') {
-    if (!isGameOver) {
-      if (controls.isLocked) {
-        controls.unlock()
-      } else if (isPaused) {
-        controls.lock()
-      }
+  // Escape Key for Pause/Resume
+  if (event.key === 'Escape' && !isGameOver) {
+    if (controls.isLocked) {
+      controls.unlock()
+    } else if (currentOverlayState === 'paused') {
+      controls.lock()
     }
+    event.preventDefault()
     return
   }
-  if (!controls.isLocked || !gameActive || isGameOver || isPaused) return
+
+  // Ctrl+Shift+Q to End Game
+  // Check if game is in the active, unpaused, non-game-over state
+  if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'q') {
+    if (gameActive && !isGameOver && !isPaused) {
+      console.log('Ctrl+Shift+Q detected - Ending game manually.')
+      manualEnd = true
+      endGame(false)
+      event.preventDefault() // Prevent default browser action (like closing tab)
+      return
+    }
+  }
+
+  // Movement Keys (only if game active and not typing)
+  if (
+    document.activeElement === playerNameInput ||
+    !controls.isLocked ||
+    !gameActive ||
+    isGameOver ||
+    isPaused
+  ) {
+    return
+  }
+
   switch (event.key.toLowerCase()) {
     case 'w':
     case 'arrowup':
@@ -857,7 +959,19 @@ function onKeyDown(event) {
       break
   }
 }
+
 function onKeyUp(event) {
+  // Don't process if an input field has focus
+  if (document.activeElement === playerNameInput) return
+
+  // Only reset movement state if game controls should be active
+  if (!controls.isLocked || !gameActive || isGameOver || isPaused) {
+    // Reset just in case, though should be handled by lock/unlock/endgame
+    moveState.forward = 0
+    moveState.right = 0
+    return
+  }
+
   switch (event.key.toLowerCase()) {
     case 'w':
     case 'arrowup':
@@ -878,7 +992,7 @@ function onKeyUp(event) {
   }
 }
 
-// --- UI Update ---
+// --- UI Update (Gameplay UI only) ---
 function updateUI() {
   bulletsUI.textContent = bullets
   targetsUI.textContent = `${destroyedTargets}/${totalTargets}`
@@ -897,9 +1011,10 @@ function onWindowResize() {
 // --- Animation Loop ---
 function animate() {
   requestAnimationFrame(animate)
-  const deltaTime = Math.min(clock.getDelta(), 0.1)
+  const deltaTime = Math.min(clock.getDelta(), 0.1) // Clamp delta time
 
   if (!isGameOver && gameActive && !isPaused) {
+    // Only update game world when active
     updatePlayerMovement(deltaTime)
     updateParticles(deltaTime)
     updateLabelVisibility(deltaTime)
@@ -910,18 +1025,18 @@ function animate() {
         originalGunPosition,
         deltaTime * RECOIL_RECOVERY_SPEED,
       )
-      // Check if recoil is almost finished using a small threshold
       if (gunGroup.position.distanceToSquared(originalGunPosition) < 0.00001) {
-        gunGroup.position.copy(originalGunPosition) // Snap to final position
+        gunGroup.position.copy(originalGunPosition) // Snap to final
         isRecoiling = false
       }
     }
   } else if (isRecoiling && gunGroup) {
-    // Snap back instantly if paused/game over during recoil
+    // If paused or game over during recoil, snap back instantly
     gunGroup.position.copy(originalGunPosition)
     isRecoiling = false
   }
 
+  // Always render the scene
   renderer.render(scene, camera)
 }
 
